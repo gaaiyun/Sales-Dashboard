@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        # 轻路径：跑测试只需要 pandas / numpy + v1 仪表板模块在 import 期需要的
+        # plotly / streamlit / scikit-learn / openpyxl。
+        # statsmodels（重模型）不装——forecast 模块在缺它时自动降级，相关用例照样通过。
+        # pandas 固定在 2.x：pandas 3.0 移除了 fillna(method=)，会让 forecast 用例报错。
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest "pandas<3" "numpy<3" plotly streamlit scikit-learn openpyxl
+
+      - name: Run tests
+        # 用 -o addopts="" 覆盖 pytest.ini 里的 --cov（未安装 pytest-cov，避免误报失败）
+        run: python -m pytest tests/ -o addopts=""
